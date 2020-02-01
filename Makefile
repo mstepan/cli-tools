@@ -21,8 +21,8 @@ default: build
 
 build:
 	go mod vendor
-	go build -o bin/main main.go
-	go build -o bin/folder_stat folder_stat.go
+	go build -o bin/main src/main.go
+	go build -o bin/folder_stat src/folder_stat.go
 
 run:
 	./bin/main
