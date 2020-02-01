@@ -2,21 +2,15 @@
 # Constants
 ########################################################################################################################
 
-# Golang compilation
-GOOS=darwin
-GOARCH=amd64
-GOPATH=/Users/mstepan/repo/go-workspace
-GOROOT=/usr/local/bin/go
+# Golang compilation options
+export GOOS=darwin
+export GOARCH=amd64
 
-# Get the version number from VERSION file.
-CODE_VERSION = $(strip $(shell cat VERSION))
+# Main gopath
+export GOPATH=/Users/mstepan/repo/go-workspace
 
-ifndef CODE_VERSION
-$(error You need to create a VERSION file to build a release)
-endif
-
-# Get the latest commit.
-GIT_COMMIT = $(strip $(shell git rev-parse --short HEAD))
+# go version go1.13.7 darwin/amd64 location
+export GOROOT=/usr/local/go
 
 ########################################################################################################################
 # Commands
@@ -26,6 +20,7 @@ GIT_COMMIT = $(strip $(shell git rev-parse --short HEAD))
 default: build
 
 build:
+	go mod vendor
 	go build -o bin/main main.go
 	go build -o bin/folder_stat folder_stat.go
 
@@ -33,5 +28,5 @@ run:
 	./bin/main
 
 clean:
-	rm -rf main
+	rm -rf bin
 

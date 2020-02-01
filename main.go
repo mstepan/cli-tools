@@ -1,77 +1,55 @@
 package main
 
 import (
-	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 )
 
 func main() {
 
-	if len(os.Args) < 2 {
-		fmt.Println("Specify folder")
+	if len(os.Args) != 2 {
+		fmt.Println("Specify file as a parameter")
 		return
 	}
 
-	absPath, err := filepath.Abs(os.Args[1])
+	rawPath := os.Args[1]
+	absPath, err := filepath.Abs(rawPath)
+
+	if err != nil {
+		fmt.Printf("Can't make abs path from file %s\n", rawPath)
+		return
+	}
+
+	fmt.Printf("Reading content for '%s'\n", absPath)
+
+	var (
+		bufSize = 256
+		buf     = make([]byte, bufSize)
+	)
+
+	file, err := os.Open(absPath)
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	fmt.Printf("Listing for '%s'\n", absPath)
+	defer file.Close()
 
-	var counter struct {
-		filesCount int
-		dirsCount  int
-	}
+	for true {
+		n, readErr := file.Read(buf)
 
-	filepath.Walk(absPath, func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
-			counter.dirsCount++
+		if readErr == nil {
+			fmt.Print(string(buf[:n]))
 		} else {
-			counter.filesCount++
+			if readErr == io.EOF {
+				break
+			}
+			fmt.Println("Error during read process", readErr)
+			return
 		}
-		//fmt.Println("-", path)
-
-		return nil
-	})
-
-	fmt.Printf("Total: %d files in %d directories\n", counter.filesCount, counter.dirsCount)
-}
-
-func printWorkingDirOrFail() {
-	if dir, err := os.Getwd(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	} else {
-		fmt.Printf("working dir: %s\n", dir)
 	}
 }
 
-func changeWorkingDirectoryOrFail(dir string) {
-	if err := os.Chdir(dir); err != nil {
-		fmt.Printf("Can't change working directory %e\n", err)
-		os.Exit(1)
-	}
-}
-
-func factorial(x int) (int, error) {
-
-	if x < 0 {
-		return -1, errors.New(fmt.Sprintf("Can't calculate factorial for negative value: %d", x))
-	}
-
-	if x == 0 {
-		return 1, nil
-	}
-	res := 1
-
-	for i := 2; i <= x; i++ {
-		res *= i
-	}
-
-	return res, nil
-}
