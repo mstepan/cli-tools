@@ -7,8 +7,11 @@ import (
 	"path/filepath"
 )
 
-// Why we choose 128KB as a buffer size, check this link: https://eklitzke.org/efficient-file-copying-on-linux
-// This one is also interesting https://lwn.net/Articles/372384/
+/*
+As of May 2014, 128KiB is determined to be the minimum block size to best minimize system call overhead.
+See: http://git.savannah.gnu.org/cgit/coreutils.git/tree/src/ioblksize.h and
+https://eklitzke.org/efficient-file-copying-on-linux
+*/
 const BufSizeInBytes int64 = 128 * 1024
 const DebugMode = false
 
@@ -35,19 +38,20 @@ func main() {
 
 	if srcErr != nil {
 		fmt.Printf("Can't open src file %s, %s\n", srcFileName, srcErr)
-		return
+		panic(srcErr)
 	}
 
 	defer srcFile.Close()
 
 	var buf = make([]byte, bufSize)
 
-	destFile, destErr := os.Create(destPath)
+	destFile, writeErr := os.Create(destPath)
 
-	if destErr != nil {
-		fmt.Printf("Can't open dest file %s, %s\n", destFileName, destErr)
-		return
+	if writeErr != nil {
+		fmt.Printf("Can't open dest file %s, %s\n", destFileName, writeErr)
+		panic(writeErr)
 	}
+
 	defer destFile.Close()
 
 	for true {
@@ -62,7 +66,7 @@ func main() {
 		} else {
 			if err != io.EOF {
 				fmt.Printf("Can't read from file %s, %s\n", srcFileName, err)
-				return
+				panic(err)
 			}
 			break
 		}
@@ -73,7 +77,6 @@ func calculateBufSize(path string) int64 {
 	if fileInfo, err := os.Stat(path); err == nil {
 		return minInt64(ceilPowerOf2(fileInfo.Size()), BufSizeInBytes)
 	}
-
 	return BufSizeInBytes
 }
 
@@ -84,7 +87,13 @@ func minInt64(first int64, second int64) int64 {
 	return second
 }
 
-// Returns the next power of 2 bigger than 'value'
+/*
+Returns the next power of 2 bigger than 'value'.
+Example: 20 in decimal = 010100 in binary
+1. Extend right most one: 010[100] => 010[111]
+2. Fill right side with all 1s till the left most 1 value: 0[10100] => 0[11111]
+3. Add one to result: 011111 => 100000
+*/
 func ceilPowerOf2(value int64) int64 {
 	value--
 	value |= value >> 1
@@ -97,16 +106,7 @@ func ceilPowerOf2(value int64) int64 {
 	return value
 }
 
-
 func extractFileName(path string) string {
 	_, file := filepath.Split(path)
 	return file
-}
-
-func isFileExists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return !info.IsDir()
 }
